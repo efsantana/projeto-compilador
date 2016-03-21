@@ -256,14 +256,24 @@ function Scanner(data){
         if(!this.isReadingComment){
           //new code
           if(token != ''){
-            return this.lookForNumerico(token, letter) || this.lookForOp(token, letter) || this.lookForReserved(token, letter)
+            var result = this.lookForNumerico(token, letter) || this.lookForOp(token, letter) || this.lookForReserved(token, letter)
+            if(result){
+              result.position = this.position.copy()
+            }
+            return result
           }else{
             token += letter;
           }
         }
       }
-      if(token != null)
-        return this.lookForNumerico(token, letter) || this.lookForOp(token, letter) || this.lookForReserved(token, letter)
+      if(token != null){
+        var result = this.lookForNumerico(token, letter) || this.lookForOp(token, letter) || this.lookForReserved(token, letter)
+        if(result){
+          result.position = this.position.copy()
+        }
+        return result
+      }
+
 
     }
   }
