@@ -29,9 +29,10 @@ var fs = require('fs');
 fs.readFile(filename, 'utf8', function(err, data) {
   if (err) throw err;
   var fileData = data;
-  var scanner = Scanner(fileData)
+  var parser = Parser(fileData)
+  //var scanner = Scanner(fileData)
   var token
-  while(token = scanner.get()){
+  while(token = parser.sint()){
     console.log(token);
   }
 });
@@ -295,6 +296,74 @@ function Scanner(data){
           lexema : lexema,
           valor : valor,
           token : token
+        }
+      }
+    }
+  }
+}
+
+function Parser(data){
+  return {
+    sint : function(){
+      var tokenArray = [];
+      var token1 = {
+        lexema: '',
+        valor: '',
+        token: '<'
+      }
+      var token2 = {
+        lexema: '',
+        valor: '',
+        token: '-'
+      }
+      var token3 = {
+        lexema: '',
+        valor: 3,
+        token: 'BEGIN'
+      }
+      tokenArray.push(token1);
+      tokenArray.push(token2);
+      tokenArray.push(token3);
+
+      var i = tokenArray.length - 1;
+      if(i==1){
+        //chama a função de pegar token novo
+      }
+      else{
+        var nextToken = tokenArray[i];
+        var previousToken = tokenArray[i-1];
+
+        if((previousToken.token ==  '>')||(previousToken.token ==  '>')||(previousToken.token ==  '<=')||(previousToken.token ==  '>=')||(previousToken.token ==  '=')||(previousToken.token ==  '<>')){
+          if((nextToken.token =='NUMÉRICO')||(nextToken.token =='ID')||(nextToken.token =='(')){
+            //Tudo OK, chama a função do token novo
+          }
+          else{
+            throw new Error('ERRO_2 \nErro 02: Símbolo "'+nextToken.token+'" inesperado. Esperando: ID, valor numérico ou "(". Linha '+'1'+', coluna '+'2'+' \n')
+          }
+        }
+        else if((previousToken.token == '+')||(previousToken.token == '-')||(previousToken.token == '*')||(previousToken.token == '/')){
+          if((nextToken.token =='NUMÉRICO')||(nextToken.token =='ID')||(nextToken.token =='(')){
+            //Tudo OK, chama a função do token novo
+            }
+          else{
+            throw new Error('ERRO_2 \nErro 02: Símbolo "'+nextToken.token+'" inesperado. Esperando: ID, valor numérico ou "(". Linha '+'1'+', coluna '+'2'+' \n')
+          }
+        }
+        else if(previousToken.token == '.'){
+          if(nextToken.token == 'NUMÉRICO'){
+            //Tudo OK, chama a função do token novo
+          }
+          else{
+            throw new Error('ERRO_2 \nErro 02: Símbolo "'+nextToken.token+'" inesperado. Esperando: Valor numérico. Linha '+'1'+', coluna '+'2'+' \n')
+          }
+        }
+        else if(previousToken.token == ','){
+          if(nextToken.token == 'ID'){
+            //Tudo OK, chama a função do token novo
+          }
+          else{
+            throw new Error('ERRO_2 \nErro 02: Símbolo "'+nextToken.token+'" inesperado. Esperando: ID. Linha '+'1'+', coluna '+'2'+' \n')
+          }
         }
       }
     }
