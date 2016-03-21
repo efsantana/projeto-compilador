@@ -34,49 +34,6 @@ fs.readFile(filename, 'utf8', function(err, data) {
   while(token = scanner.get()){
     console.log(token);
   }
-  return
-  var position = {
-    line : 1,
-    column : 1
-  }
-  var readingComment = false;
-  var comment = {
-    text : ''
-  };
-  for(c in fileData){
-    var letter = fileData[c];
-    if(letter == '}'){
-      readingComment = false;
-      comments.push(comment)
-      comment = {}
-    }
-    if(readingComment){
-      comment.text += letter;
-    }
-    if(letter == '{'){
-      readingComment = true;
-      comment.position = position.copy()
-    }
-    if(['\n', '\t', '\r', ' '].indexOf(letter) == -1){
-      console.log(letter, position);
-      position.column++
-    }else{
-      switch(letter){
-        case ' ':
-          position.column++;
-          break;
-        case '\r':
-          position.line++;
-          position.column=1;
-          break;
-        case '\t':
-          position.column+=4;
-          break;
-      }
-    }
-  }
-  //console.log(fileData.match(/[^\s]*/gi))
-
 });
 function Scanner(data){
   return {
@@ -116,16 +73,21 @@ function Scanner(data){
     isAlphaNum : function(letter){
       if(!letter || this.isSpace(letter))
         return null
-      return letter.match(/[A-Z0-9]+/) != null
+      return letter.match(/^[A-Z0-9]+$/) != null
+    },
+    isAlpha : function(letter){
+      if(!letter || this.isSpace(letter))
+        return null
+      return letter.match(/^[A-Z]+$/) != null
     },
     isFloat : function(token){
-      return token.match(/[0-9]+\.[0-9]+/) != null
+      return token.match(/^[0-9]+\.[0-9]+$/) != null
     },
     isNumber : function(token){
       return this.isFloat(token) || this.isInteger(token)
     },
     isInteger : function(token){
-      return token.match(/[0-9]+/) != null
+      return token.match(/^[0-9]+$/) != null
     },
     isOp : function(token){
       return
@@ -168,7 +130,101 @@ function Scanner(data){
           readingComment = true;
         }
         if(!readingComment){
+          //new code
+          if(token != ''){
+            if(this.isInteger(token)){
+              if(this.isInteger(letter)){
+                token += letter
+              }
+              while(this.isInteger(letter = this.data.next())){
+                token += letter
+                this.walk(letter)
+              }
+              if(letter == '.'){
+                token += letter;
+                this.walk(letter)
+                while(this.isInteger(letter = this.data.next())){
+                  token += letter
+                  this.walk(letter)
+                }
+                if(!this.isOp(letter) && !this.isSpace(letter)){
+                  throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
+                }else{
+                  return {
+                    valor : parseFloat(token),
+                    token : 'NUMERICO',
+                    lexema : ''
+                  }
+                }
+              }else{
+                if(!this.isOp(letter) && !this.isSpace(letter)){
+                  throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
+                }else{
+                  return {
+                    valor : parseInt(token),
+                    token : 'NUMERICO',
+                    lexema : ''
+                  }
+                }
+              }
+            }
+            if(this.isAlpha(token[0]) && this.isAlphaNum(token)){
+              if(this.isAlphaNum(letter)){
+                token += letter
+              }
+              while(this.isAlphaNum(letter = this.data.next())){
+                token += letter
+                this.walk(letter)
+              }
+              if(!this.isOp(letter) && !this.isSpace(letter)){
+                throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
+              }else{
+                return {
+                  valor : '',
+                  token : 'ID',
+                  lexema : token
+                }
+              }
+            }
+          }else{
+            token += letter;
+          }
+          continue
+          /*
+          if(this.isInteger(letter)){
+            token += letter;
+            continue;
+          }else{
+            if(letter == '.'){
+              token += letter;
+              letter = this.data.next()
+              this.walk(letter)
+              if(this.isInteger(letter)){
+                token += letter;
+                continue;
+              }else{
+                if(!this.isOp(letter)){
+                  throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
+                }
+              }
+            }
+          }
+          */
+          if(this.isFloat(token)){
+            while(this.isInteger(letter = this.data.next())){
+              token += letter
+              this.walk(letter)
+            }
+            if(this.isInteger(letter)){
+              token += letter;
+              continue;
+            }else{
+              throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
+            }
+          }
 
+          return
+          //new code
           if(this.isAlphaNum(letter)){
             token += letter
             while(this.isAlphaNum(letter = this.data.next())){
@@ -178,7 +234,7 @@ function Scanner(data){
             if(letter != null){
               this.walk(letter)
             }else{
-              return null
+              break
             }
             if(letter == '.'){
               if(this.isInteger(token)){
@@ -225,7 +281,6 @@ function Scanner(data){
               }
             }
           }else{
-
             if(this.isFloat(token)){
               valor = parseFloat(token)
               token = 'NUMERICO'
@@ -234,13 +289,13 @@ function Scanner(data){
             }
           }
         }
-      }
-      if(!letter)
-        return null
-      return {
-        lexema : lexema,
-        valor : valor,
-        token : token
+        if(!token)
+          return null
+        return {
+          lexema : lexema,
+          valor : valor,
+          token : token
+        }
       }
     }
   }
