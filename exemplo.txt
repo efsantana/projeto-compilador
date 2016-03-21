@@ -13,9 +13,9 @@ Begin
 		R1 := 1,5;
 		I5 := i4;			{s� pra testar}
 		R2 := r1;
-		R3 : i1 + r1;
+		R3 := i1 + r1;
 		R4 := (i1 / 10) * (r1 + i2);
-		R4 := (r4) + ((i1 / 15,2) * (r1 + i2));
+		R4 := (r4) + ((i1 / 15.2) * (r1 + i2));
 					{s� pra testar}
 		if (5 > r2) then
 			All (s1, s2);
@@ -26,13 +26,13 @@ Begin
 			repeat
 			Begin
 				R2 := r2 + 2;
-				R3 : r3 + 3;
+				R3 := r3 + 3;
 			End;
 			until ( (r1 = 20) or (r3 < 30)) ;
 	{s�  pra  testar}
 		End ;
 
-		if ((r1 <> 20) or (i1 <= 30) or (r3 > 30,5) or (i1 >= 0)) then
+		if ((r1 <> 20) or (i1 <= 30) or (r3 > 30.5) or (i1 >= 0)) then
 		Begin
 			R2 := r3 + 1;
 		End;
