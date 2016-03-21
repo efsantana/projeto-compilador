@@ -1,8 +1,3 @@
-/(BEGIN)|(END)|(IF)|(THEN)|(ELSE)|(WHILE)|(DO)|(UNTIL)|(REPEAT)|(INTEGER)|(REAL)|(ALL)|(AND)|(OR)|(STRING)|(PROGRAM)/
-
-var _integer = /[0-9]+/
-var _real = /_integer\._integer/
-var _number = /_integer|_real/
 
 
 var reserved = {
@@ -31,10 +26,12 @@ fs.readFile(filename, 'utf8', function(err, data) {
   var fileData = data;
   var scanner = Scanner(fileData)
   var token
+  i=0;
   while(token = scanner.get()){
-    console.log(token);
+    console.log(i++,token);
   }
 });
+
 function Scanner(data){
   return {
     op : {
@@ -49,6 +46,7 @@ function Scanner(data){
       line : 1,
       column : 1
     },
+    isReadingComment : false,
     walk : function(letter){
       switch(letter){
         case ' ':
@@ -90,17 +88,142 @@ function Scanner(data){
       return token.match(/^[0-9]+$/) != null
     },
     isOp : function(token){
-      return
-        this.isRelational(token) ||
-        this.isReserved(token) ||
-        this.isSpecial(token) ||
-        this.isBoolean(token) ||
-        this.isArithmetic(token)
+      return this.isRelational(token) || this.isReserved(token) || this.isSpecial(token) || this.isBoolean(token) || this.isArithmetic(token)
+    },
+    lookForNumerico : function(token, letter){
+      if(this.isInteger(token)){
+        if(this.isInteger(letter)){
+          token += letter
+        }else{
+          this.data.unshift(letter)
+        }
+        while(this.isInteger(letter = this.data.next())){
+          token += letter
+          this.walk(letter)
+        }
+        if(letter == '.'){
+          token += letter;
+          this.walk(letter)
+          while(this.isInteger(letter = this.data.next())){
+            token += letter
+            this.walk(letter)
+          }
+          if(!this.isOp(letter) && !this.isSpace(letter)){
+            throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
+          }else{
+            this.data.unshift(letter)
+            return {
+              valor : parseFloat(token),
+              token : 'NUMERICO',
+              lexema : ''
+            }
+          }
+        }else{
+          if(!this.isOp(letter) && !this.isSpace(letter)){
+            throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
+          }else{
+            this.data.unshift(letter)
+            return {
+              valor : parseInt(token),
+              token : 'NUMERICO',
+              lexema : ''
+            }
+          }
+        }
+      }
+    },
+    lookForReserved : function(token, letter){
+      if(this.isAlpha(token)){
+        if(this.isAlpha(letter)){
+          token += letter
+        }else{
+          this.data.unshift(letter)
+        }
+        while(this.isAlpha(letter = this.data.next()) && token.length < 9){
+          token += letter
+          this.walk(letter)
+        }
+        if(this.isReserved(token)){
+          this.data.unshift(letter)
+          return {
+            valor : '',
+            token : token,
+            lexema : ''
+          }
+        }else{
+          this.walk(letter)
+          return this.lookForId(token, letter)
+        }
+      }else{
+        return this.lookForId(token, letter)
+      }
+    },
+    lookForId : function(token, letter){
+      if(this.isAlpha(token[0]) && this.isAlphaNum(token)){
+        if(this.isAlphaNum(letter)){
+          token += letter
+        }else{
+          this.data.unshift(letter)
+        }
+
+        while(this.isAlphaNum(letter = this.data.next())){
+          token += letter
+          this.walk(letter)
+        }
+        if(!this.isOp(letter) && !this.isSpace(letter)){
+          throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
+        }else{
+          this.data.unshift(letter)
+          return {
+            valor : '',
+            token : 'ID',
+            lexema : token
+          }
+        }
+      }
+    },
+    lookForOp : function(token, letter){
+      //console.log('oi',token, letter);
+      if(this.isOp(token) || token == ':' || token == "<" || token == ">"){
+        if(this.isOp(letter)){
+          token += letter
+        }else{
+          this.data.unshift(letter)
+        }
+        while(this.isOp(letter = this.data.next())){
+          token += letter
+          this.walk(letter)
+        }
+        /*if(!this.isOp(letter) && !this.isSpace(letter) && letter != null){
+          throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
+        }else{
+          this.data.unshift(letter)
+          return {
+            valor : '',
+            token : token,
+            lexema : ''
+          }
+        }*/
+        /*if(!this.isAlphaNum(letter)){
+          throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
+        }*/
+        this.data.unshift(letter)
+        return {
+          valor : '',
+          token : token,
+          lexema : ''
+        }
+      }
     },
     isRelational : function(token){
       return this.op.relational.indexOf(token) > -1
     },
     isReserved : function(token){
+      /*filtered = this.op.reserved.filter(function(item){
+        if(item.indexOf(token) > -1)
+          return true
+      })
+      return filtered.length > 0*/
       return this.op.reserved.indexOf(token) > -1
     },
     isBoolean : function(token){
@@ -116,76 +239,24 @@ function Scanner(data){
       var token = '';
       var valor = '';
       var lexema = '';
-      var readingComment = false;
+      //var readingComment = false;
       var readingToken = false;
       while(letter = this.data.next()){
+        console.log('início', letter);
         this.walk(letter)
         if(this.isSpace(letter)){
           continue;
         }
         if(letter == '}'){
-          readingComment = false;
+          this.isReadingComment = false;
         }
         if(letter == '{'){
-          readingComment = true;
+          this.isReadingComment = true;
         }
-        if(!readingComment){
+        if(!this.isReadingComment){
           //new code
           if(token != ''){
-            if(this.isInteger(token)){
-              if(this.isInteger(letter)){
-                token += letter
-              }
-              while(this.isInteger(letter = this.data.next())){
-                token += letter
-                this.walk(letter)
-              }
-              if(letter == '.'){
-                token += letter;
-                this.walk(letter)
-                while(this.isInteger(letter = this.data.next())){
-                  token += letter
-                  this.walk(letter)
-                }
-                if(!this.isOp(letter) && !this.isSpace(letter)){
-                  throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
-                }else{
-                  return {
-                    valor : parseFloat(token),
-                    token : 'NUMERICO',
-                    lexema : ''
-                  }
-                }
-              }else{
-                if(!this.isOp(letter) && !this.isSpace(letter)){
-                  throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
-                }else{
-                  return {
-                    valor : parseInt(token),
-                    token : 'NUMERICO',
-                    lexema : ''
-                  }
-                }
-              }
-            }
-            if(this.isAlpha(token[0]) && this.isAlphaNum(token)){
-              if(this.isAlphaNum(letter)){
-                token += letter
-              }
-              while(this.isAlphaNum(letter = this.data.next())){
-                token += letter
-                this.walk(letter)
-              }
-              if(!this.isOp(letter) && !this.isSpace(letter)){
-                throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
-              }else{
-                return {
-                  valor : '',
-                  token : 'ID',
-                  lexema : token
-                }
-              }
-            }
+            return this.lookForNumerico(token, letter) || this.lookForOp(token, letter) || this.lookForReserved(token, letter)
           }else{
             token += letter;
           }
@@ -288,15 +359,18 @@ function Scanner(data){
               throw new Error('ERRO_1 \nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n')
             }
           }
-        }
+        }/*
         if(!token)
           return null
         return {
           lexema : lexema,
           valor : valor,
           token : token
-        }
+        }*/
       }
+      if(token != null)
+        return this.lookForNumerico(token, letter) || this.lookForOp(token, letter) || this.lookForReserved(token, letter)
+
     }
   }
 }
