@@ -1,7 +1,14 @@
-var scanner = require('./scanner.js')
+var Scanner = require('./scanner.js')
 function Parser(data){
   return {
-    Scanner : scanner(data)
+    tokens : [],
+    lexer : function(){
+      var scanner = Scanner(data)
+      while(token = scanner.get()){
+        this.tokens.push(token.copy())
+      }
+      return this.tokens.length > 0
+    }
   }
 }
 module.exports = Parser
