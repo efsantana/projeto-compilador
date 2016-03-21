@@ -185,12 +185,12 @@ function Scanner(data){
     lookForOp : function(token, letter){
       //console.log('oi',token, letter);
       if(this.isOp(token) || token == ':' || token == "<" || token == ">"){
-        if(this.isOp(letter)){
+        if(this.isOp(token+letter)){
           token += letter
         }else{
           this.data.unshift(letter)
         }
-        while(this.isOp(letter = this.data.next())){
+        while(this.isOp(token + (letter = this.data.next()))){
           token += letter
           this.walk(letter)
         }
@@ -204,9 +204,9 @@ function Scanner(data){
             lexema : ''
           }
         }*/
-        /*if(!this.isAlphaNum(letter)){
+        if(!this.isOp(token)){
           throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
-        }*/
+        }
         this.data.unshift(letter)
         return {
           valor : '',
@@ -242,13 +242,13 @@ function Scanner(data){
       //var readingComment = false;
       var readingToken = false;
       while(letter = this.data.next()){
-        console.log('início', letter);
         this.walk(letter)
         if(this.isSpace(letter)){
           continue;
         }
         if(letter == '}'){
           this.isReadingComment = false;
+          continue;
         }
         if(letter == '{'){
           this.isReadingComment = true;
@@ -260,113 +260,7 @@ function Scanner(data){
           }else{
             token += letter;
           }
-          continue
-          /*
-          if(this.isInteger(letter)){
-            token += letter;
-            continue;
-          }else{
-            if(letter == '.'){
-              token += letter;
-              letter = this.data.next()
-              this.walk(letter)
-              if(this.isInteger(letter)){
-                token += letter;
-                continue;
-              }else{
-                if(!this.isOp(letter)){
-                  throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
-                }
-              }
-            }
-          }
-          */
-          if(this.isFloat(token)){
-            while(this.isInteger(letter = this.data.next())){
-              token += letter
-              this.walk(letter)
-            }
-            if(this.isInteger(letter)){
-              token += letter;
-              continue;
-            }else{
-              throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
-            }
-          }
-
-          return
-          //new code
-          if(this.isAlphaNum(letter)){
-            token += letter
-            while(this.isAlphaNum(letter = this.data.next())){
-              token += letter
-              this.walk(letter)
-            }
-            if(letter != null){
-              this.walk(letter)
-            }else{
-              break
-            }
-            if(letter == '.'){
-              if(this.isInteger(token)){
-                token += letter
-                this.walk(letter)
-                while(this.isAlphaNum(letter = this.data.next())){
-                  token += letter
-                  this.walk(letter)
-                }
-              }else{
-                throw new Error('\nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n');
-              }
-            }
-          }else{
-            if(this.isSpecial(letter)){
-              token = letter
-            }else{
-              while(letter && !this.isAlphaNum(letter) && !this.isSpace(letter) && !this.isSpecial(letter)){
-                token += letter
-                letter = this.data.next()
-                this.walk(letter)
-                if(this.isOp(token+letter)){
-                  continue;
-                }else{
-                  if(this.isOp(token)){
-                    break;
-                  }
-                }
-              }
-            }
-          }
-          if(this.isAlphaNum(token)){
-            if(this.isInteger(token)){
-              valor = parseInt(token)
-              token = 'NUMERICO'
-            }else{
-              if(!this.isReserved(token) && !this.isBoolean(token)){
-                if(this.isInteger(token.split('.')[0])){
-                  throw new Error('ERRO_1 \nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n')
-                }else{
-                  lexema = token
-                  token = 'ID'
-                }
-              }
-            }
-          }else{
-            if(this.isFloat(token)){
-              valor = parseFloat(token)
-              token = 'NUMERICO'
-            }else{
-              throw new Error('ERRO_1 \nErro 01: Símbolo "'+token+'" inválido na linha '+this.position.line+', coluna '+this.position.column+' \n')
-            }
-          }
-        }/*
-        if(!token)
-          return null
-        return {
-          lexema : lexema,
-          valor : valor,
-          token : token
-        }*/
+        }
       }
       if(token != null)
         return this.lookForNumerico(token, letter) || this.lookForOp(token, letter) || this.lookForReserved(token, letter)

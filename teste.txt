@@ -1,1 +1,1 @@
-integer ,{saiu}ASD
+integer (2*3)+(3-4)
